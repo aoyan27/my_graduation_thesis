@@ -38,7 +38,7 @@ class agent:
 	init_state_joint5 = -95
 
         init_joint1 = 0
-        init_joint3 = 95
+        init_joint3 = 65
         init_joint5 = 45
 
         init_next_joint1 = init_joint1
@@ -49,18 +49,18 @@ class agent:
 
 	ALPHA = 0.5
 	GAMMA = 0.9
-        EPSILON = 0.0
+        EPSILON = 1.0
 
-	wait_flag = False
+	wait_flag = True
 	select_action_flag = False
 	q_update_flag = False
 	state_observation_flag = False
 	state_observation_flag1 = False
 	state_observation_flag3 = False
 	state_observation_flag5 = False
-
-        model_load_flag = False
-
+        
+        reward_flag = False
+        
         L1 = 0.064
         L2 = 0.063
         L3 = 0.250
@@ -70,6 +70,7 @@ class agent:
 
 
         joint1_rad = 0.0 / 180.0 * pi
+        #  joint2_rad = -(1.515/self.pi*180.0 - 90.0) / 180.0 * self.pi
         joint2_rad = -1 * (-1.515 + pi / 2.0)
         joint3_rad = 55.0 / 180.0 * pi
         joint5_rad = 45.0 / 180.0 * pi
@@ -77,32 +78,30 @@ class agent:
 	
         def __init__(self):
 		self.joint_state = np.zeros((3), dtype=np.float32)
+		#  print self.joint_state
 		self.action_num = 0
 		self.reward = 0.0
 
                 self.target_point = PointCloud()
-                self.target_init_y = -0.080
-                #  self.target_init_x = math.sqrt(self.L**2 - self.target_init_y**2) + 0.270
                 self.target_init_x = self.L + 0.270
+                self.target_init_y = 0.000
                 self.target_init_z = 0.960
 
 		self.num_step = 0
                 self.num_episode = 0
 
 
-                #  self.model = chainer.FunctionSet(
-                        #  l1 = F.Linear(6, 2048),
-                        #  l2 = F.Linear(2048, 1024),
-                        #  l3 = F.Linear(1024, 512),
-                        #  l4 = F.Linear(512, 256),
-                        #  l5 = F.Linear(256, 128),
-                        #  l6 = F.Linear(128, 64),
-                        #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
-                        #  )
-                self.model_num = 0
-                self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_%d.dat' % self.model_num
-                f = open(self.modelname, 'rb')
-                self.model = pickle.load(f)
+                self.model = chainer.FunctionSet(
+                        l1 = F.Linear(6, 2048),
+                        l2 = F.Linear(2048, 1024),
+                        l3 = F.Linear(1024, 512),
+                        l4 = F.Linear(512, 256),
+                        l5 = F.Linear(256, 128),
+                        l6 = F.Linear(128, 64),
+                        l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
+                        )
+                #  fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_30000.dat', 'rb')
+                #  self.model = pickle.load(fi)
                 if args.gpu >= 0:
                     self.model.to_gpu()
                 self.optimizer = optimizers.SGD()
@@ -125,19 +124,19 @@ class agent:
         def joint1_state_callback(self, msg):
             #  print "msg.data : ", msg.data
             self.joint_state[0] = msg.data
-            #  print "joint1_state : ",self.joint_state[0]
+            print "joint1_state : ",self.joint_state[0]
 	    self.state_observation_flag1 = True
  
         def joint3_state_callback(self, msg):
             #  print "msg.data : ", msg.data
             self.joint_state[1] = msg.data
-            #  print "joint3_state : ",self.joint_state[1]
+            print "joint3_state : ",self.joint_state[1]
 	    self.state_observation_flag3 = True
 
         def joint5_state_callback(self, msg):
             #  print "msg.data : ", msg.data
             self.joint_state[2] = msg.data
-            #  print "joint5_state : ",self.joint_state[2]
+            print "joint5_state : ",self.joint_state[2]
 	    self.state_observation_flag5 = True        
 
         def reward_calculation_client(self, req_reward):
@@ -155,7 +154,7 @@ class agent:
 
         def cal_target_x(self, y_data):
             return math.sqrt(self.L**2 - y_data**2) + 0.270
-        
+
         def forward(self, joint1_data, joint3_data, joint5_data):
             joint1_data_float = float(joint1_data -self.mean(50.0, -50.0) ) / (50.0 - (-50.0))
             joint3_data_float = float(joint3_data - self.mean(90.0, -10.0)) / (90.0 - (-10.0))
@@ -224,10 +223,7 @@ class agent:
 		elif self.q_list.data[0][i] == max_temp:
 		    i_max.append(i)
 	    a = i_max[randint(0, len(i_max)-1)]
-            #  print "q_list : ", self.q_list.data
-            Q_MAX = np.max(self.q_list.data.get())
-            #  print "Q_MAX : ", Q_MAX
-	    return a, Q_MAX
+	    return a
 
 	def epsilon_greedy(self, joint1, joint3, joint5):
 	    if self.EPSILON > random():
@@ -238,55 +234,8 @@ class agent:
                 print "argmax Q select!!"
 	    return a
         
-        def forward_kinematics(self, joint1_data, joint2_data, joint3_data, joint5_data):
-            joint1_rad = joint1_data / 180.0 * math.pi
-            joint2_rad = -1 * (joint2_data / 180.0 * math.pi + math.pi / 2.0)
-            joint3_rad = joint3_data / 180.0 * math.pi
-            joint5_rad = joint5_data / 180.0 * math.pi
-
-            L = self.L3 * math.cos(joint2_rad) + (self.L4 + self.L5) * math.cos(joint2_rad + joint3_rad) + self.L6 * math.cos(joint2_rad + joint3_rad - joint5_rad)
-            print "L : ", L
-
-            arm_end_x = L * math.cos(joint1_rad)
-            arm_end_y = L * math.sin(joint1_rad)
-            arm_end_z = -(self.L1 + self.L2)  + self.L3 * math.sin(joint2_rad) + (self.L4 + self.L5) * math.sin(joint2_rad + joint3_rad) + self.L6 * math.sin(joint2_rad + joint3_rad - joint5_rad)
-            return arm_end_x, arm_end_y, arm_end_z
-        
-        def calculation_linear(self, x, x1, x2, y1, y2):
-            return (y2 - y1) / (x2 - x1) * (x - x1) + y1
-
-        def calculation_path(self):
-            target_x = self.target_point.points[0].x - 0.270
-            target_y = self.target_point.points[0].y - 0.000
-            target_z = self.target_point.points[0].z - 0.935
-            
-            path_point = PointCloud()
-            path_point.header.frame_id = "/base_link"
-            
-            vis_path_point = PointCloud()
-            vis_path_point.header.frame_id = "/base_link"
-            
-            for x in drange(self.init_arm_end_x, target_x, self.dx):
-                y = self.calculation_linear(x, self.init_arm_end_x, target_x, self.init_arm_end_y, target_y)
-                z = self.calculation_linear(x, self.init_arm_end_x, target_x, self.init_arm_end_z, target_z)
-                #  print "x : ", x, ", y :  ", y, ", z : ", z
-                self.optimal_path_x = np.append(self.optimal_path_x, np.array([x+0.270]))
-                self.optimal_path_y = np.append(self.optimal_path_y, np.array([y+0.000]))
-                self.optimal_path_z = np.append(self.optimal_path_z, np.array([z+0.935]))
-                path_point.header.stamp = rospy.Time.now()
-                path_point.points.append(Point32(x, y, z))
-                vis_path_point.header.stamp = rospy.Time.now()
-                vis_path_point.points.append(Point32(x + 0.270, y + 0.000, z + 0.935))
-            
-            vis_path_point_size = len(path_point.points)
-            #  print "path_point_size : ", vis_path_point_size
-            self.pub_path_point.publish(vis_path_point) 
-            self.pub_path_point_size.publish(vis_path_point_size)
-            
-            return path_point, vis_path_point
-        
         def main(self):
-            rospy.init_node('q_update_client_repair2_random_demo')
+            rospy.init_node('q_update_client_dqn')
             
             rospy.Subscriber("/state_observation_flag", Int64, self.state_observation_flag_callback)
             rospy.Subscriber("/joint1_state", Float64, self.joint1_state_callback)
@@ -306,7 +255,7 @@ class agent:
             
             loop_rate = rospy.Rate(100)
             
-            filename_result = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_results/test_evoluation.txt"
+            filename_result = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_results/test_result.txt"
 
             count = 0
             count_temp = 0
@@ -314,38 +263,29 @@ class agent:
             self.joint1 = self.init_joint1
             self.joint3 = self.init_joint3
             self.joint5 = self.init_joint5
-            print "current joint1 : ", self.joint1
-            print "current joint3 : ", self.joint3
-            print "current joint5 : ", self.joint5
+            print "joint1 : ", self.joint1
+            print "joint3 : ", self.joint3
+            print "joint5 : ", self.joint5
 
             self.next_joint1 = self.init_joint1
             self.next_joint3 = self.init_joint3
             self.next_joint5 = self.init_joint5
-            #  print "next joint1 : ", self.next_joint1
-            #  print "next joint3 : ", self.next_joint3
-            #  print "next joint5 : ", self.next_joint5
-            
-            temp_Q_MAX = 0.0
-            Q_MAX_list = np.array([])
-            average_Q_MAX_list = []
-            average_Q_MAX = 0.0
+            self.joint_state[0] = self.init_joint1
+            self.joint_state[1] = self.init_joint3
+            self.joint_state[2] = self.init_joint5
+            print "next joint1 : ", self.next_joint1
+            print "next joint3 : ", self.next_joint3
+            print "next joint5 : ", self.next_joint5
 
             step_count = 0
-            step_count_list = []
-            step_count_average = 0.0
-
-            success_count = 0
-            success_rate = 0.0
-            success_rate_average = 0.0
+            episode_count = 0
             
-            trial_count = 1
-            
-            #  loss_list = []
+            episode_now = 0
+            episode_past = 0
 
-            reward_list = []
-            sum_reward_average = 0.0
-            reward_average = 0.0
-            reward_average_list = []
+            temp_count = 0
+
+            loss_list = []
 
             target_vis = PointCloud()
             target_vis.header.frame_id = "/base_link"
@@ -363,26 +303,8 @@ class agent:
             #  print "x : ", self.L * math.cos(0.0)+0.270
             #  rand_target_vis_y = -0.08
             while not rospy.is_shutdown():
-                if self.model_load_flag:
-                    self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_%d.dat' % self.model_num
-                    f = open(self.modelname, 'rb')
-                    self.model = pickle.load(f)
-                    print "Loard model number %d!!" % self.model_num
-                    print "now loading..."
-                if args.gpu >= 0:
-                    self.model.to_gpu()
-                self.optimizer = optimizers.SGD()
-                self.optimizer.setup(self.model)
-                self.model_load_flag = False
-
-                if trial_count == 1:
-                    if step_count == 0:
-                        self.target_point.points[0].x = self.target_init_x
-                        self.target_point.points[0].y = self.target_init_y
-                        self.target_point.points[0].z = self.target_init_z
-                        rand_target_x = self.target_init_x
-                        rand_target_y = self.target_init_y
-                        rand_target_z = self.target_init_z
+                if episode_count == 0:
+                    if step_count == 0:    
                         pub_9.publish(self.target_point)
                 #  rand_target_vis_x = math.sqrt(self.L**2 - rand_target_vis_y**2) + 0.270
                 #  rand_target_vis_z = self.target_init_z
@@ -393,9 +315,9 @@ class agent:
                     #  rand_target_vis_y += 0.01 
                 
                 if self.wait_flag:
-                    print "wait 1 seconds!!"
+                    print "wait 0.8 seconds!!"
                     count += 1
-                    if count == 100:
+                    if count == 80:
                         self.wait_flag = False
                         self.select_action_flag = False
                         self.q_update_flag = False
@@ -404,25 +326,23 @@ class agent:
                         self.state_observation_flag3 = True
                         self.state_observation_flag5 = True
                         count = 0
-                    if count == 10:
+                    if count == 40:
                         self.action_num = 0
                         self.joint1 = self.init_next_joint1
                         self.joint3 = self.init_next_joint3
                         self.joint5 = self.init_next_joint5
-                        self.reward = self.reward_calculation_client(step_count)
-                        self.reward = 0.0
                         pub_1.publish(self.joint1)
                         pub_3.publish(self.joint3)
                         pub_5.publish(self.joint5)
                         pub_6.publish(self.action_num)
+                        self.reward = self.reward_calculation_client(step_count)
+                        self.reward = 0.0
                 else:
                     if self.select_action_flag:
                         step_count += 1
-                        self.action, temp_Q_MAX = self.epsilon_greedy(self.joint1, self.joint3, self.joint5)
+                        self.action = self.epsilon_greedy(self.joint1, self.joint3, self.joint5)
                         self.action_num = self.action
-                        #  print "self.action_num : ", self.action_num
-                        Q_MAX_list = np.append(Q_MAX_list, np.array([temp_Q_MAX]))
-                        #  print "Q_MAX_LIST : ", Q_MAX_list
+                        print "self.action_num : ", self.action_num
                         pub_1.publish(self.joint1) 
                         pub_3.publish(self.joint3) 
                         pub_5.publish(self.joint5) 
@@ -430,9 +350,9 @@ class agent:
                         self.select_action_flag = False
 
                     if self.state_observation_flag and self.state_observation_flag1 and self.state_observation_flag3 and self.state_observation_flag5:
-                        #  print "self.joint_state[0] : ",self.joint_state[0]
-                        #  print "self.joint_state[1] : ",self.joint_state[1]
-                        #  print "self.joint_state[2] : ",self.joint_state[2]
+                        print "self.joint_state[0] : ",self.joint_state[0]
+                        print "self.joint_state[1] : ",self.joint_state[1]
+                        print "self.joint_state[2] : ",self.joint_state[2]
                         
                         print "now joint1 : ", self.joint1
                         print "now joint3 : ", self.joint3
@@ -446,10 +366,10 @@ class agent:
                         print "next joint5 : ", self.next_joint5
 
                         if step_count == 0:
+                            print "initialize!!!!"
                             self.select_action_flag = True
                         else:
                             self.reward = self.reward_calculation_client(step_count)
-                            reward_list.append(self.reward)
                             print "reward : ", self.reward
                             self.q_update_flag = True
                         self.state_observation_flag = False
@@ -458,101 +378,96 @@ class agent:
                         self.state_observation_flag5 = False
 
                     if self.q_update_flag:
-                        #  target_val = self.reward + self.GAMMA * np.max(self.forward(self.next_joint1, self.next_joint3, self.next_joint5).data)
-                        #  self.optimizer.zero_grads()
-                        #  tt = xp.copy(self.q_list.data)
-                        #  tt[0][self.action] = target_val
-                        #  target = chainer.Variable(tt)
+                        target_val = self.reward + self.GAMMA * np.max(self.forward(self.next_joint1, self.next_joint3, self.next_joint5).data)
+                        self.optimizer.zero_grads()
+                        tt = xp.copy(self.q_list.data)
+                        tt[0][self.action] = target_val
+                        target = chainer.Variable(tt)
                         #  loss = 0.5 * (target - self.q_list) ** 2
-                        #  loss = F.mean_squared_error(target, self.q_list)
+                        loss = F.mean_squared_error(target, self.q_list)
                         #  self.ALPHA = float(self.ALPHA)
                         #  loss.grad = xp.array([[self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA]], dtype=xp.float32)
-                        #  loss_list.append(np.max(loss.data))
-                        #  loss.backward()
-                        #  self.optimizer.update()
+                        loss_list.append(np.max(loss.data))
+                        loss.backward()
+                        self.optimizer.update()
 
-                        self.select_action_flag = True
+                        self.reward_flag = True
                         self.q_update_flag = False
-                        print "model : %d " % self.model_num,
-                        print "trial : %d " % trial_count,
+                        print "episode : %d " % episode_count,
                         print "step : %d " % step_count,
                         print "now joint1 : %d " % self.joint1,
                         print "now joint3 : %d " % self.joint3,
                         print "now joint5 : %d " % self.joint5,
                         print "now action : %d" % self.action,
-                        #  print "loss : ", np.max(loss.data),
-                        print "reward : %.1f  " % self.reward,
+                        print "loss : ", np.max(loss.data),
+                        print "reward : %.5f  " % self.reward,
                         print "EPSILON : %.5f " % self.EPSILON
                         print ""
 
-
+                    #  print ""
+                    if self.reward_flag:
+                        self.reward_flag = False
                         if self.reward >= 1:
-                            print "model : %d " % self.model_num,
-                            print "trial : %d " % trial_count,
+                            print "episode : %d " % episode_count,
                             print "step : %d " % step_count,
                             print "now joint1 : %d " % self.joint1,
                             print "now joint3 : %d " % self.joint3,
                             print "now joint5 : %d " % self.joint5,
                             print "now action : %d" % self.action,
-                            #  print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
-                            print "reward : %.1f  " % self.reward,
+                            print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
+                            print "reward : %.5f  " % self.reward,
                             print "EPSILON : %.5f " % self.EPSILON,
-                            print "success!!"
+                            print "succsess!!"
                             print ""
     
-                            average_Q_MAX_list.append(np.average(Q_MAX_list))
-                            #  print "average_Q_MAX_list : ", average_Q_MAX_list
-                            Q_MAX_list = np.array([])
-                            #  print "q_max_list : ", Q_MAX_list
+                            temp_result = np.array(([[episode_count, step_count]]), dtype=np.int32)
+                            if episode_count == 0:
+                                test_result = temp_result
+                            else:
+                                test_result = np.r_[test_result, temp_result]
+    
+                            if episode_count%100 == 0:
+                                model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
+                                f = open(model_filename, 'w')
+                                pickle.dump(self.model, f)
                             
-                            average_Q_MAX = sum(average_Q_MAX_list) / len(average_Q_MAX_list)
-                            #  print "average_Q_MAX : ", average_Q_MAX
-
-                            success_count += 1
-                            success_rate = float(success_count) / float(trial_count)
-                            #  print "success_count : ", success_count
-                            #  print "trial_count : " ,trial_count
-                            #  print "success_rate : ", success_rate
-    
-                            #  print "reward_list : ", reward_list
-                            sum_reward_average += sum(reward_list) / (len(reward_list) - 1)
-                            #  print "reward_list average : ", sum(reward_list) / len(reward_list)
-                            reward_average = sum_reward_average / trial_count
-                            #  print "reward_average : ", reward_average
+                            #  while 1:
+                                #  rand_joint1 = randint(0, 1-1)+self.init_joint1
+                                #  rand_joint3 = randint(-10, 1)+self.init_joint3
+                                #  rand_joint5 = randint(0, 1-1)+self.init_joint5
                                 
-                            step_count_list.append(step_count)
-                            #  print "step_count_list : ", step_count_list
-                            step_count_average = sum(step_count_list) / len(step_count_list)
-                            #  print "step_count_average : ", step_count_average
+                                #  if (rand_joint3>=40 and rand_joint3<=47)  and (rand_joint1>=-5 and rand_joint1<5):
+                                    #  print "one more!"
+                                #  else:
+                                    #  self.init_next_joint1 = rand_joint1
+                                    #  self.init_next_joint3 = rand_joint3
+                                    #  self.init_next_joint5 = rand_joint5
+                                    #  break
     
-                            if trial_count == 100:
-                                temp_result = np.array(([[float(self.model_num), step_count_average, reward_average, success_rate, average_Q_MAX]]))
-                                if self.model_num == 0:
-                                    test_result = temp_result
-                                    print "test_result : ", test_result
-                                else:
-                                    test_result = np.r_[test_result, temp_result]
-                                    print "test_result : ", test_result
-                                self.model_load_flag = True
-                                trial_count = 0
-                                success_count = 0
-                                sum_reward_average = 0.0
-                                step_count_list = []
-                                average_Q_MAX_list = []
-
-                                if self.model_num == 30000:
-                                    np.savetxt(filename_result, test_result, fmt="%.6f", delimiter=",")
-                                    print "finish!!!"
-                                    break
-                                if self.model_num < 5000:
-                                    self.model_num += 1000
-                                else:
-                                    self.model_num += 500
-
-                            rand_target_y += math.fabs(2*self.target_init_y) / (100.0 - 1.0)
-                            #  print "rand_traget_y : ", rand_target_y
-                            #  rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
-                            rand_target_x = self.L + 0.270 
+                            #  while 1:
+                                #  rand_target_x = self.target_init_x
+                                #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
+                                #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
+                                #  dz = (0.980 - 0.960)/(0.00 - 0.112)
+                                #  if rand_target_y <= 0.0:
+                                    #  temp_z =-1 *  dz * rand_target_y + 0.980
+                                #  else:
+                                    #  temp_z = dz * rand_target_y + 0.980
+    
+                                #  if rand_target_z <= temp_z:
+                                    #  self.target_point.header.stamp = rospy.Time.now()
+                                    #  self.target_point.points[0].x = rand_target_x
+                                    #  self.target_point.points[0].y = rand_target_y
+                                    #  self.target_point.points[0].z = rand_target_z
+                                    #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
+                                    #  break
+                                #  else:
+                                    #  print "one more!!!" 
+                                
+                            
+                            rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
+                            #  rand_target_x = self.target_init_x
+                            rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
                             rand_target_z = self.target_init_z
                             self.target_point.header.stamp = rospy.Time.now()
                             self.target_point.points[0].x = rand_target_x
@@ -560,7 +475,8 @@ class agent:
                             self.target_point.points[0].z = rand_target_z
                             
                             step_count = 0
-                            trial_count += 1
+                            episode_count += 1
+                            episode_now = episode_count
     
                             self.action_num = 0
                             self.joint1 = self.init_next_joint1
@@ -570,88 +486,81 @@ class agent:
                             pub_3.publish(self.joint3)
                             pub_5.publish(self.joint5)
                             pub_6.publish(self.action_num)
-                            
                             loss_list = []
-                            reward_list = []
     
                             pub_9.publish(self.target_point)
-                            
+    
                             self.wait_flag = True
-
                         else:
-                            if step_count < 70:
+                            if step_count < 300:
     
                                 self.joint1 = self.next_joint1
                                 self.joint3 = self.next_joint3
                                 self.joint5 = self.next_joint5
-                                print "step_count : ", step_count
     
+                                self.select_action_flag = True
+                                episode_past = episode_now
+                                print "this episode continue!!!!!!"
                             else:
-                                print "model : %d " % self.model_num,
-                                print "trial : %d " % trial_count,
+                                print "episode : %d " % episode_count,
                                 print "step : %d " % step_count,
                                 print "now joint1 : %d " % self.joint1,
                                 print "now joint3 : %d " % self.joint3,
                                 print "now joint5 : %d " % self.joint5,
                                 print "now action : %d" % self.action,
-                                #  print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
-                                print "reward : %.1f  " % self.reward,
+                                print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
+                                print "reward : %.5f  " % self.reward,
                                 print "EPSILON : %.5f " % self.EPSILON,
                                 print "failuer!!"
                                 print ""
-                                
-                                average_Q_MAX_list.append(np.average(Q_MAX_list))
-                                #  print "average_Q_MAX_list : ", average_Q_MAX_list
-                                Q_MAX_list = np.array([])
-                                #  print "q_max_list : ", Q_MAX_list
-                                
-                                average_Q_MAX = sum(average_Q_MAX_list) / len(average_Q_MAX_list)
-                                #  print "average_Q_MAX : ", average_Q_MAX
-
-                                success_rate = float(success_count) / float(trial_count)
-                                #  print "success_count : ", success_count
-                                #  print "trial_count : " ,trial_count
-                                #  print "success_rate : ", success_rate
-                                
-                                #  print "reward_list : ", reward_list
-                                sum_reward_average += sum(reward_list) / (len(reward_list) - 1)
-                                #  print "reward_list average : ", sum(reward_list) / len(reward_list)
-                                reward_average = sum_reward_average / trial_count
-                                #  print "reward_average : ", reward_average
     
-                                step_count_list.append(step_count)
-                                #  print "step_count_list : ", step_count_list
-                                step_count_average = sum(step_count_list) / len(step_count_list)
-                                #  print "step_count_average : ", step_count_average
+                                temp_result = np.array(([[episode_count, step_count]]), dtype=np.int32)
+                                if episode_count == 0:
+                                    test_result = temp_result
+                                else:
+                                    test_result = np.r_[test_result, temp_result]
                                 
-                                if trial_count == 100:
-                                    temp_result = np.array(([[float(self.model_num), step_count_average, reward_average, success_rate, average_Q_MAX]]))
-                                    if self.model_num == 0:
-                                        test_result = temp_result
-                                        print "test_result : ", test_result
-                                    else:
-                                        test_result = np.r_[test_result, temp_result]
-                                        print "test_result : ", test_result
-                                    self.model_load_flag = True
-                                    trial_count = 0
-                                    success_count = 0
-                                    sum_reward_average = 0.0
-                                    step_count_list = []
-                                    average_Q_MAX_list = []
-
-                                    if self.model_num == 30000:
-                                        np.savetxt(filename_result, test_result, fmt="%.6f", delimiter=",")
-                                        print "finish!!!"
-                                        break
-                                    if self.model_num < 5000:
-                                        self.model_num += 1000
-                                    else:
-                                        self.model_num += 500
+                                if episode_count%100 == 0:
+                                    model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
+                                    f = open(model_filename, 'w')
+                                    pickle.dump(self.model, f)
+                        
+                                #  while 1:
+                                    #  rand_joint1 = randint(0, 1-1)+self.init_joint1
+                                    #  rand_joint3 = randint(-10, 1)+self.init_joint3
+                                    #  rand_joint5 = randint(0, 1-1)+self.init_joint5
+                                    
+                                    #  if (rand_joint3>=40 and rand_joint3<=47)  and (rand_joint1>=-5 and rand_joint1<5):
+                                        #  print "one more!"
+                                    #  else:
+                                        #  self.init_next_joint1 = rand_joint1
+                                        #  self.init_next_joint3 = rand_joint3
+                                        #  self.init_next_joint5 = rand_joint5
+                                        #  break
                                 
-                                rand_target_y += math.fabs(2*self.target_init_y) / (100.0 - 1.0)
-                                print "rand_target_y : ", rand_target_y
-                                #  rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
-                                rand_target_x = self.L + 0.270 
+                                #  while 1:
+                                    #  rand_target_x = self.target_init_x
+                                    #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
+                                    #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
+                                    #  dz = (0.980 - 0.960)/(0.00 - 0.112)
+                                    #  if rand_target_y <= 0.0:
+                                        #  temp_z = -1 * dz * rand_target_y + 0.980
+                                    #  else:
+                                        #  temp_z = dz * rand_target_y + 0.980
+    
+                                    #  if rand_target_z <= temp_z:
+                                        #  self.target_point.header.stamp = rospy.Time.now()
+                                        #  self.target_point.points[0].x = rand_target_x
+                                        #  self.target_point.points[0].y = rand_target_y
+                                        #  self.target_point.points[0].z = rand_target_z
+                                        #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
+                                        #  break
+                                    #  else:
+                                        #  print "one more!!!" 
+                                    
+                                rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
+                                #  rand_target_x = self.target_init_x
+                                rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
                                 rand_target_z = self.target_init_z
                                 self.target_point.header.stamp = rospy.Time.now()
                                 self.target_point.points[0].x = rand_target_x
@@ -659,8 +568,9 @@ class agent:
                                 self.target_point.points[0].z = rand_target_z
                                 
                                 step_count = 0
-                                trial_count += 1
-                                
+                                episode_count += 1
+                                episode_now = episode_count
+    
                                 self.action_num = 0
                                 self.joint1 = self.init_next_joint1
                                 self.joint3 = self.init_next_joint3
@@ -669,21 +579,30 @@ class agent:
                                 pub_3.publish(self.joint3)
                                 pub_5.publish(self.joint5)
                                 pub_6.publish(self.action_num)
-                                
                                 loss_list = []
-                                reward_list = []
-                                
+    
                                 pub_9.publish(self.target_point)
     
                                 self.wait_flag = True
-                                
+    
+                        if math.fabs(episode_now - episode_past) > 1e-6:
+                            if self.EPSILON > 0.1000:
+                                print "EPSILON decreace!!!"
+                                self.EPSILON -= 0.000025
 
                     self.num_step = step_count
                     pub_7.publish(self.num_step)
-                    self.num_episode = trial_count
+                    self.num_episode = episode_count
                     pub_8.publish(self.num_episode)
                     
-                
+
+                    if episode_count > 40000:
+                        np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
+                        #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
+                        #  pickle.dump(self.model, f)
+                        print "Finish!!!"
+                        break
+
                 loop_rate.sleep()
     
 if __name__=="__main__":

@@ -34,8 +34,8 @@ class agent:
 	init_state_joint3 = 40
 	init_state_joint5 = 30
 
-	init_state = 17809
-        init_next = 17809
+	init_state = 17700
+        init_next = 17700
 
 
 	num_s = 70*70*10
@@ -66,7 +66,13 @@ class agent:
 		self.state = 0
 		self.next_state = 0
 
-                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test13_dedede/dqn_arm_model_7950.dat', 'rb')
+                #  self.model = chainer.FunctionSet(
+                        #  l1 = F.Linear(3, 120),
+                        #  l2 = F.Linear(120, 80),
+                        #  l3 = F.Linear(80, 40),
+                        #  l4 = F.Linear(40, 27, initialW=np.zeros((27, 40), dtype=np.float32)),
+                        #  )
+                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test11_dedede/dqn_arm_model_5000.dat', 'rb')
                 self.model = pickle.load(fi)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -130,6 +136,18 @@ class agent:
             except rospy.ServiceException, e:
                 print "Service call faild : %s" % e
             
+        def my_norm(self, *x):
+            sum_temp = 0.0
+            if args.gpu >= 0:
+                cuda.to_gpu(sum_temp)
+            #  print "input : ", x[0][0]
+            for i in range(len(x[0][0])):
+                sum_temp += x[0][0][i]**2
+                #  print x[0][0][i]
+            #  print "sum_temp : ", sum_temp
+            #  print "sqrt(sum_temp) : ", math.sqrt(sum_temp)
+            return math.sqrt(sum_temp)
+
         def forward(self, joint1_data, joint3_data, joint5_data):
             joint1_data_float = float(joint1_data - 35) / 70.0
             joint3_data_float = float(joint3_data - 35) / 70.0
@@ -146,16 +164,21 @@ class agent:
             y = None
 
             h1 = F.relu(self.model.l1(x))
+            h1.data = h1.data / self.my_norm(h1.data)
             #  h1.data = h1.data / xp.linalg.norm(h1.data)
             #  print "h1 : ", h1.data
             h2 = F.relu(self.model.l2(h1))
+            #  h2.data = h2.data / self.my_norm(h2.data)
             #  h2.data = h2.data / xp.linalg.norm(h2.data)
             #  print "h2 : ", h2.data
             h3 = F.relu(self.model.l3(h2))
+            h3.data = h3.data / self.my_norm(h3.data)
             #  h3.data = h3.data / xp.linalg.norm(h3.data)
             #  print "h3 : ", h3.data
             h4 = F.relu(self.model.l4(h3))
+            h4.data = h4.data / self.my_norm(h4.data)
             h5 = F.relu(self.model.l5(h4))
+            h5.data = h5.data / self.my_norm(h5.data)
             #  h6 = F.relu(self.model.l6(h5))
             y = self.model.l6(h5)
             print "y : ", y.data
@@ -235,9 +258,9 @@ class agent:
 
             while not rospy.is_shutdown():
                 if self.wait_flag:
-                    print "wait 2 seconds!!"
+                    print "wait 3 seconds!!"
                     count += 1
-                    if count == 200:
+                    if count == 300:
                         self.wait_flag = False
                         self.select_action_flag = False
                         self.q_update_flag = False
@@ -343,9 +366,9 @@ class agent:
                         
                         while 1:
                             rand_joint1 = randint(0, 21-1)-10
-                            rand_joint3 = randint(0, 31-1)+40
-                            rand_joint5 = randint(0, 11-1)+30
-                            init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + (rand_joint5 - self.init_state_joint5) * 1
+                            rand_joint3 = randint(0, 21-1)+40
+                            rand_joint5 = randint(0, 1-1)
+                            init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + 1 * rand_joint5
                             print "init_next_temp : ", init_next_temp
                             if (rand_joint3>=40 and rand_joint3<=47) and (rand_joint1>=-5 and rand_joint1<5):
                                 print "one more!!"
@@ -394,9 +417,9 @@ class agent:
 
                             while 1:
                                 rand_joint1 = randint(0, 21-1)-10
-                                rand_joint3 = randint(0, 31-1)+40
-                                rand_joint5 = randint(0, 11-1)+30
-                                init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + (rand_joint5 - self.init_state_joint5) * 1
+                                rand_joint3 = randint(0, 21-1)+40
+                                rand_joint5 = randint(0, 1-1)
+                                init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + 1 * rand_joint5
                                 print "init_next_temp : ", init_next_temp
                                 if (rand_joint3>=40 and rand_joint3<=47) and (rand_joint1>=-5 and rand_joint1<5):
                                     print "one more!!"
@@ -418,7 +441,7 @@ class agent:
 
                     if math.fabs(episode_now - episode_past) > 1e-6:
                         if self.EPSILON > 0.3000:
-                            self.EPSILON -= 0.0001
+                            self.EPSILON -= 0.000125
 
                     self.num_step = step_count
                     pub_4.publish(self.num_step)
@@ -430,7 +453,7 @@ class agent:
                         f = open(model_filename, 'w')
                         pickle.dump(self.model, f)
 
-                    if episode_count > 10000:
+                    if episode_count > 8000:
                         np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
                         #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
                         #  pickle.dump(self.model, f)

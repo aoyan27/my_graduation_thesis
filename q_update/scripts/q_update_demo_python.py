@@ -16,7 +16,7 @@ class agent:
 	init_state_joint3 = 40
 	init_state_joint5 = 30
 
-	init_state = 17600
+	init_state = 3900
 
 	num_s = 70*70*10
 	num_a = 3*3*3
@@ -42,13 +42,15 @@ class agent:
 
 		self.state = 0
 		self.next_state = 0
-		self.Qtable = np.loadtxt("/home/amsl/ros_catkin_ws/src/arm_q_learning/q_table/q_table_python2/q_table_1000.txt", delimiter=",")
-                #  print self.Qtable[3900]
+		self.Qtable = np.loadtxt("/home/amsl/ros_catkin_ws/src/arm_q_learning/q_table/q_table_cari9/q_table_1500.txt", delimiter=",")
+                print self.Qtable[3900]
                 self.Qmax = 0.0
 
                 self.action = 0
                 self.state = 0
                 self.next_state = 0
+
+                self.state_list = []
 
 	def state_observation_flag_callback(self, msg):
 		self.state_observation_flag = True
@@ -143,25 +145,38 @@ class agent:
             
             episode_now = 0
             episode_past = 0
-
+            
             while not rospy.is_shutdown():
                 pub.publish(episode_count)
                 if self.wait_flag:
-                    print "wait 3 seconds!!"
-                    count += 1
-                    if count == 300:
-                        self.wait_flag = False
-                        self.select_action_flag = False
-                        self.q_update_flag = False
-                        self.state_observation_flag = True
-                        count = 0
-                    if count == 10:
+                    #  print "wait 4 seconds!!"
+                    print "count : ",count
+                    if count == 0:
+                        print "state_list(before) : ", self.state_list
+                        self.state_list.reverse()
+                        print "state_list(after) : ", self.state_list
+                    if count%2 == 0:
                         self.action_num = 0
-                        self.num_state = self.init_state
+                        #  self.num_state = self.init_state
+                        if count/10 < len(self.state_list):
+                            self.num_state = self.state_list[count/10]
+                        else:
+                            self.num_state = self.init_state
+
                         self.state = self.init_state
                         self.reward = 0
                         pub_1.publish(self.action_num)
                         pub_2.publish(self.num_state)
+                    
+                    count += 1
+                    
+                    if count == 400:
+                        self.wait_flag = False
+                        self.select_action_flag = False
+                        self.q_update_flag = False
+                        self.state_observation_flag = True
+                        self.state_list = []
+                        count = 0
                 else:
                     if self.select_action_flag:
                         print "episode : %d " % episode_count,
@@ -182,6 +197,7 @@ class agent:
                     if self.state_observation_flag:
                         self.next_state = self.joint_to_s_client()
                         print "s = ", self.state
+                        self.state_list.append(self.state)
                         print "sd = ", self.next_state
 
                         self.reward = self.reward_calculation_client(step_count)
@@ -213,7 +229,7 @@ class agent:
                         episode_now = episode_count
 
                         self.action_num = 0
-                        self.num_state = self.init_state
+                        self.num_state = self.state
                         pub_1.publish(self.action_num)
                         pub_2.publish(self.num_state)
 
@@ -245,7 +261,7 @@ class agent:
                             episode_now = episode_count
 
                             self.action_num = 0
-                            self.num_state = self.init_state
+                            self.num_state = self.state
                             pub_1.publish(self.action_num)
                             pub_2.publish(self.num_state)
 

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -44,11 +45,14 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  array1d.msg
+  array2d.msg
+  State.msg
+  # Message1.msg
+  # Message2.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -65,10 +69,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -161,26 +165,30 @@ install(PROGRAMS
   scripts/q_update_demo_python.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-install(PROGRAMS
-  scripts/q_update_demo_dqn.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(PROGRAMS
+  # scripts/q_update_demo_dqn.py
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 install(PROGRAMS
   scripts/q_update_demo_dqn2.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+# install(PROGRAMS
+  # scripts/q_update_demo_repair.py
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 install(PROGRAMS
-  scripts/q_update_demo_dqn3.py
+  scripts/q_update_demo_repair2_random_demo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-install(PROGRAMS
-  scripts/q_update_client_python.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(PROGRAMS
-  scripts/q_update_client_dqn.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(PROGRAMS
+  # scripts/q_update_client_python.py
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+# install(PROGRAMS
+  # scripts/q_update_client_dqn.py
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 install(PROGRAMS
   scripts/q_update_client_dqn2.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -189,16 +197,12 @@ install(PROGRAMS
   scripts/q_update_client_dqn3.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+# install(PROGRAMS
+  # scripts/q_update_client_repair.py
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 install(PROGRAMS
-  scripts/q_update_client_dqn4.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(PROGRAMS
-  scripts/q_update_client_dqn5.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(PROGRAMS
-  scripts/q_update_client_dqn6.py
+  scripts/q_update_client_repair2.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(PROGRAMS
@@ -206,7 +210,7 @@ install(PROGRAMS
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(PROGRAMS
-  scripts/q_update_client_repair2_random_demo.py
+  scripts/q_update_client_repair2_random2.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(PROGRAMS

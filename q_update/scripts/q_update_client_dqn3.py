@@ -76,8 +76,6 @@ class agent:
                         )
                 if args.gpu >= 0:
                     self.model.to_gpu()
-                
-                #  self.optimizer = optimizers.RMSpropGraves(lr=0.00025, alpha=0.95, momentum=0.95, eps=0.0001)
                 self.optimizer = optimizers.SGD()
                 self.optimizer.setup(self.model)
                 self.q_list = chainer.Variable(xp.zeros((1, 27), dtype=xp.float32))
@@ -140,16 +138,16 @@ class agent:
 
 
         def my_norm(self, *x):
-                sum_temp = 0.0
-                if args.gpu >= 0:
-                    cuda.to_gpu(sum_temp)
-                #  print "input : ", x[0][0]
-                for i in range(len(x[0][0])):
-                    sum_temp += x[0][0][i]**2
-                    #  print x[0][0][i]
-                #  print "sum_temp : ", sum_temp
-                #  print "sqrt(sum_temp) : ", math.sqrt(sum_temp)
-                return math.sqrt(sum_temp)
+            sum_temp = 0.0
+            if args.gpu >= 0:
+                cuda.to_gpu(sum_temp)
+            #  print "input : ", x[0][0]
+            for i in range(len(x[0][0])):
+                sum_temp += x[0][0][i]**2
+                #  print x[0][0][i]
+            #  print "sum_temp : ", sum_temp
+            #  print "sqrt(sum_temp) : ", math.sqrt(sum_temp)
+            return math.sqrt(sum_temp)
 
 
         def forward(self, joint1_data, joint3_data, joint5_data):
@@ -342,16 +340,15 @@ class agent:
                         self.state_observation_flag3 = False
 
                     if self.q_update_flag:
-                        print type(self.forward(self.next_joint1, self.next_joint3, self.next_joint5).data)
                         target_val = self.reward + self.GAMMA * np.max(self.forward(self.next_joint1, self.next_joint3, self.next_joint5).data)
                         self.optimizer.zero_grads()
                         tt = xp.copy(self.q_list.data)
                         tt[0][self.action] = target_val
                         target = chainer.Variable(tt)
                         #  loss = 0.5 * (target - self.q_list) ** 2
-                        loss  = F.mean_squared_error(target, self.q_list)
+                        loss = F.mean_squared_error(target, self.q_list)
                         #  self.ALPHA = float(self.ALPHA)
-                        #  loss.grad = xp.array([[self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA]], dtype=xp.float32)
+                        loss.grad = xp.array([[self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA, self.ALPHA]], dtype=xp.float32)
                         loss_list.append(np.max(loss.data))
                         loss.backward()
                         self.optimizer.update()
@@ -488,5 +485,5 @@ class agent:
                 loop_rate.sleep()
     
 if __name__=="__main__":
-    ql_agent = agent()
+    )l_agent = agent()
     ql_agent.main()

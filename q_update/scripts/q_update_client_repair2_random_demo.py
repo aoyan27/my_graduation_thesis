@@ -51,7 +51,6 @@ class agent:
 	GAMMA = 0.9
         EPSILON = 0.0
 
-	#  wait_flag = False
 	wait_flag = True
 	select_action_flag = False
 	q_update_flag = False
@@ -59,6 +58,8 @@ class agent:
 	state_observation_flag1 = False
 	state_observation_flag3 = False
 	state_observation_flag5 = False
+
+        reward_flag = False
 
         L1 = 0.064
         L2 = 0.063
@@ -100,7 +101,7 @@ class agent:
                         #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
                         #  )
 
-                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_30000.dat', 'rb')
+                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test20_angeal/dqn_arm_model_35000.dat', 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -266,13 +267,13 @@ class agent:
             print "joint1 : ", self.joint1
             print "joint3 : ", self.joint3
             print "joint5 : ", self.joint5
-            
-            self.joint_state[0] = self.init_joint1
-            self.joint_state[1] = self.init_joint3
-            self.joint_state[2] = self.init_joint5
+
             self.next_joint1 = self.init_joint1
             self.next_joint3 = self.init_joint3
             self.next_joint5 = self.init_joint5
+            self.joint_state[0] = self.init_joint1
+            self.joint_state[1] = self.init_joint3
+            self.joint_state[2] = self.init_joint5
             print "next joint1 : ", self.next_joint1
             print "next joint3 : ", self.next_joint3
             print "next joint5 : ", self.next_joint5
@@ -315,9 +316,9 @@ class agent:
                     #  rand_target_vis_y += 0.01 
                 
                 if self.wait_flag:
-                    print "wait 1 seconds!!"
+                    print "wait 0.8 seconds!!"
                     count += 1
-                    if count == 100:
+                    if count == 80:
                         self.wait_flag = False
                         self.select_action_flag = False
                         self.q_update_flag = False
@@ -326,20 +327,21 @@ class agent:
                         self.state_observation_flag3 = True
                         self.state_observation_flag5 = True
                         count = 0
-                    if count == 10:
+                    if count == 40:
                         self.action_num = 0
                         self.joint1 = self.init_next_joint1
                         self.joint3 = self.init_next_joint3
                         self.joint5 = self.init_next_joint5
-                        self.reward = 0.0
                         pub_1.publish(self.joint1)
                         pub_3.publish(self.joint3)
                         pub_5.publish(self.joint5)
                         pub_6.publish(self.action_num)
+                        self.reward = self.reward_calculation_client(step_count)
+                        self.reward = 0.0
                 else:
                     if self.select_action_flag:
+                        step_count += 1
                         self.action = self.epsilon_greedy(self.joint1, self.joint3, self.joint5)
-                        #  self.action = 8
                         self.action_num = self.action
                         print "self.action_num : ", self.action_num
                         pub_1.publish(self.joint1) 
@@ -364,10 +366,13 @@ class agent:
                         print "next joint3 : ", self.next_joint3
                         print "next joint5 : ", self.next_joint5
 
-                        self.reward = self.reward_calculation_client(step_count)
-                        print "reward : ", self.reward
-                        #  self.select_action_flag = True
-                        self.q_update_flag = True
+                        if step_count == 0:
+                            print "initialize!!!!"
+                            self.q_update_flag = True
+                        else:
+                            self.q_update_flag = True
+                            self.reward = self.reward_calculation_client(step_count)
+                            print "reward : ", self.reward
                         self.state_observation_flag = False
                         self.state_observation_flag1 = False
                         self.state_observation_flag3 = False
@@ -387,7 +392,7 @@ class agent:
                         #  loss.backward()
                         #  self.optimizer.update()
 
-                        self.select_action_flag = True
+                        self.reward_flag = True
                         self.q_update_flag = False
                         step_count += 1
                         print "episode : %d " % episode_count,
@@ -397,100 +402,14 @@ class agent:
                         print "now joint5 : %d " % self.joint5,
                         print "now action : %d" % self.action,
                         #  print "loss : ", np.max(loss.data),
-                        print "reward : %.1f  " % self.reward,
+                        print "reward : %.5f  " % self.reward,
                         print "EPSILON : %.5f " % self.EPSILON
                         print ""
 
                     #  print ""
-
-                    if self.reward >= 1:
-                        print "episode : %d " % episode_count,
-                        print "step : %d " % step_count,
-                        print "now joint1 : %d " % self.joint1,
-                        print "now joint3 : %d " % self.joint3,
-                        print "now joint5 : %d " % self.joint5,
-                        print "now action : %d" % self.action,
-                        #  print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
-                        print "reward : %.1f  " % self.reward,
-                        print "EPSILON : %.5f " % self.EPSILON,
-                        print "succsess!!"
-                        print ""
-
-                        temp_result = np.array(([[episode_count, step_count]]), dtype=np.int32)
-                        if episode_count == 0:
-                            test_result = temp_result
-                        else:
-                            test_result = np.r_[test_result, temp_result]
-
-                        
-                        #  while 1:
-                            #  rand_joint1 = randint(0, 1-1)+self.init_joint1
-                            #  rand_joint3 = randint(-10, 1)+self.init_joint3
-                            #  rand_joint5 = randint(0, 1-1)+self.init_joint5
-                            
-                            #  if (rand_joint3>=40 and rand_joint3<=47)  and (rand_joint1>=-5 and rand_joint1<5):
-                                #  print "one more!"
-                            #  else:
-                                #  self.init_next_joint1 = rand_joint1
-                                #  self.init_next_joint3 = rand_joint3
-                                #  self.init_next_joint5 = rand_joint5
-                                #  break
-
-                        #  while 1:
-                            #  rand_target_x = self.target_init_x
-                            #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
-                            #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
-                            #  dz = (0.980 - 0.960)/(0.00 - 0.112)
-                            #  if rand_target_y <= 0.0:
-                                #  temp_z =-1 *  dz * rand_target_y + 0.980
-                            #  else:
-                                #  temp_z = dz * rand_target_y + 0.980
-
-                            #  if rand_target_z <= temp_z:
-                                #  self.target_point.header.stamp = rospy.Time.now()
-                                #  self.target_point.points[0].x = rand_target_x
-                                #  self.target_point.points[0].y = rand_target_y
-                                #  self.target_point.points[0].z = rand_target_z
-                                #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
-                                #  break
-                            #  else:
-                                #  print "one more!!!" 
-                        
-                        rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
-                        #  rand_target_x = self.target_init_x
-                        rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
-                        rand_target_z = self.target_init_z
-                        self.target_point.header.stamp = rospy.Time.now()
-                        self.target_point.points[0].x = rand_target_x
-                        self.target_point.points[0].y = rand_target_y
-                        self.target_point.points[0].z = rand_target_z
-                        
-                        step_count = 0
-                        episode_count += 1
-                        episode_now = episode_count
-
-                        self.action_num = 0
-                        self.joint1 = self.init_next_joint1
-                        self.joint3 = self.init_next_joint3
-                        self.joint5 = self.init_next_joint5
-                        pub_1.publish(self.joint1)
-                        pub_3.publish(self.joint3)
-                        pub_5.publish(self.joint5)
-                        pub_6.publish(self.action_num)
-                        loss_list = []
-
-                        pub_9.publish(self.target_point)
-
-                        self.wait_flag = True
-                    else:
-                        if step_count < 100:
-
-                            self.joint1 = self.next_joint1
-                            self.joint3 = self.next_joint3
-                            self.joint5 = self.next_joint5
-
-                            episode_past = episode_now
-                        else:
+                    if self.reward_flag:
+                        self.reward_flag = False
+                        if self.reward >= 1:
                             print "episode : %d " % episode_count,
                             print "step : %d " % step_count,
                             print "now joint1 : %d " % self.joint1,
@@ -498,9 +417,9 @@ class agent:
                             print "now joint5 : %d " % self.joint5,
                             print "now action : %d" % self.action,
                             #  print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
-                            print "reward : %.1f  " % self.reward,
+                            print "reward : %.5f  " % self.reward,
                             print "EPSILON : %.5f " % self.EPSILON,
-                            print "failuer!!"
+                            print "succsess!!"
                             print ""
 
                             temp_result = np.array(([[episode_count, step_count]]), dtype=np.int32)
@@ -508,6 +427,7 @@ class agent:
                                 test_result = temp_result
                             else:
                                 test_result = np.r_[test_result, temp_result]
+
                             
                             #  while 1:
                                 #  rand_joint1 = randint(0, 1-1)+self.init_joint1
@@ -521,14 +441,14 @@ class agent:
                                     #  self.init_next_joint3 = rand_joint3
                                     #  self.init_next_joint5 = rand_joint5
                                     #  break
-                            
+
                             #  while 1:
                                 #  rand_target_x = self.target_init_x
                                 #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
                                 #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
                                 #  dz = (0.980 - 0.960)/(0.00 - 0.112)
                                 #  if rand_target_y <= 0.0:
-                                    #  temp_z = -1 * dz * rand_target_y + 0.980
+                                    #  temp_z =-1 *  dz * rand_target_y + 0.980
                                 #  else:
                                     #  temp_z = dz * rand_target_y + 0.980
 
@@ -568,6 +488,93 @@ class agent:
                             pub_9.publish(self.target_point)
 
                             self.wait_flag = True
+                        else:
+                            if step_count < 100:
+
+                                self.joint1 = self.next_joint1
+                                self.joint3 = self.next_joint3
+                                self.joint5 = self.next_joint5
+
+                                episode_past = episode_now
+                                self.select_action_flag = True
+                            else:
+                                print "episode : %d " % episode_count,
+                                print "step : %d " % step_count,
+                                print "now joint1 : %d " % self.joint1,
+                                print "now joint3 : %d " % self.joint3,
+                                print "now joint5 : %d " % self.joint5,
+                                print "now action : %d" % self.action,
+                                #  print "loss average : %.3f " % (sum(loss_list)/len(loss_list)),
+                                print "reward : %.5f  " % self.reward,
+                                print "EPSILON : %.5f " % self.EPSILON,
+                                print "failuer!!"
+                                print ""
+
+                                temp_result = np.array(([[episode_count, step_count]]), dtype=np.int32)
+                                if episode_count == 0:
+                                    test_result = temp_result
+                                else:
+                                    test_result = np.r_[test_result, temp_result]
+                                
+                                #  while 1:
+                                    #  rand_joint1 = randint(0, 1-1)+self.init_joint1
+                                    #  rand_joint3 = randint(-10, 1)+self.init_joint3
+                                    #  rand_joint5 = randint(0, 1-1)+self.init_joint5
+                                    
+                                    #  if (rand_joint3>=40 and rand_joint3<=47)  and (rand_joint1>=-5 and rand_joint1<5):
+                                        #  print "one more!"
+                                    #  else:
+                                        #  self.init_next_joint1 = rand_joint1
+                                        #  self.init_next_joint3 = rand_joint3
+                                        #  self.init_next_joint5 = rand_joint5
+                                        #  break
+                                
+                                #  while 1:
+                                    #  rand_target_x = self.target_init_x
+                                    #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
+                                    #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
+                                    #  dz = (0.980 - 0.960)/(0.00 - 0.112)
+                                    #  if rand_target_y <= 0.0:
+                                        #  temp_z = -1 * dz * rand_target_y + 0.980
+                                    #  else:
+                                        #  temp_z = dz * rand_target_y + 0.980
+
+                                    #  if rand_target_z <= temp_z:
+                                        #  self.target_point.header.stamp = rospy.Time.now()
+                                        #  self.target_point.points[0].x = rand_target_x
+                                        #  self.target_point.points[0].y = rand_target_y
+                                        #  self.target_point.points[0].z = rand_target_z
+                                        #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
+                                        #  break
+                                    #  else:
+                                        #  print "one more!!!" 
+                                
+                                rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
+                                #  rand_target_x = self.target_init_x
+                                rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
+                                rand_target_z = self.target_init_z
+                                self.target_point.header.stamp = rospy.Time.now()
+                                self.target_point.points[0].x = rand_target_x
+                                self.target_point.points[0].y = rand_target_y
+                                self.target_point.points[0].z = rand_target_z
+                                
+                                step_count = 0
+                                episode_count += 1
+                                episode_now = episode_count
+
+                                self.action_num = 0
+                                self.joint1 = self.init_next_joint1
+                                self.joint3 = self.init_next_joint3
+                                self.joint5 = self.init_next_joint5
+                                pub_1.publish(self.joint1)
+                                pub_3.publish(self.joint3)
+                                pub_5.publish(self.joint5)
+                                pub_6.publish(self.action_num)
+                                loss_list = []
+
+                                pub_9.publish(self.target_point)
+
+                                self.wait_flag = True
 
                     self.num_step = step_count
                     pub_7.publish(self.num_step)

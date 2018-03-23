@@ -45,7 +45,7 @@ if __name__=="__main__":
     joint5_rad = 45.0 / 180.0 * pi
     L = L3 * math.cos(joint2_rad) + (L4 + L5) * math.cos(joint2_rad + joint3_rad) + L6 * math.cos(joint2_rad + joint3_rad - joint5_rad) - 0.010
 
-    target_init_y = 0.15
+    target_init_y = 0.20
     target_init_x = math.sqrt(L**2 - target_init_y**2) + 0.270
     target_init_z = 0.90
     target = PointCloud()
@@ -55,12 +55,12 @@ if __name__=="__main__":
 
     i = 0.0
     while not rospy.is_shutdown():
-        target_point_y = 0.20 + i
-        target.points[0].y = target_point_y
-        target.points[0].x = math.sqrt(L**2 - target_point_y**2) + 0.270
+        #  target_point_y = 0.20 + i
+        #  target.points[0].y = target_point_y
+        #  target.points[0].x = math.sqrt(L**2 - target_point_y**2) + 0.270
         #  target.points[0].y = -0.034
         #  target.points[0].x = 0.803
-        target.points[0].z = 0.90
+        #  target.points[0].z = 0.90
         target.header.stamp = rospy.Time.now() 
         pub.publish(target)
         print "publish ", target

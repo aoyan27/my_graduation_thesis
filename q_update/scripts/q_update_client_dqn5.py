@@ -74,13 +74,12 @@ class agent:
 		self.next_state = 0
 
                 self.model = chainer.FunctionSet(
-                        l1 = F.Linear(6, 2560),
-                        l2 = F.Linear(2560, 1280),
-                        l3 = F.Linear(1280, 640),
-                        l4 = F.Linear(640, 320),
-                        l5 = F.Linear(320, 160),
-                        l6 = F.Linear(160, 80),
-                        l7 = F.Linear(80, 27, initialW=np.zeros((27, 80), dtype=np.float32)),
+                        l1 = F.Linear(6, 1536),
+                        l2 = F.Linear(1536, 768),
+                        l3 = F.Linear(768, 384),
+                        l4 = F.Linear(384, 192),
+                        l5 = F.Linear(192, 96),
+                        l6 = F.Linear(96, 27, initialW=np.zeros((27, 96), dtype=np.float32)),
                         )
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -213,8 +212,8 @@ class agent:
             #  print "norm h5(after) : ", self.my_norm(h5.data)
             #  h5.data = h5.data / np.linalg.norm(h5.data)
             #  print "h5 : ", h5.data
-            h6 = F.relu(self.model.l6(h5))
-            y = self.model.l7(h6)
+            #  h6 = F.relu(self.model.l6(h5))
+            y = self.model.l6(h5)
             print "y : ", y.data
 
             return y
@@ -570,7 +569,7 @@ class agent:
 
                     if math.fabs(episode_now - episode_past) > 1e-6:
                         if self.EPSILON > 0.1000:
-                            self.EPSILON -= 0.00001
+                            self.EPSILON -= 0.00007
 
                     self.num_step = step_count
                     pub_4.publish(self.num_step)
@@ -582,7 +581,7 @@ class agent:
                         f = open(model_filename, 'w')
                         pickle.dump(self.model, f)
 
-                    if episode_count > 10000:
+                    if episode_count > 20000:
                         np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
                         #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
                         #  pickle.dump(self.model, f)

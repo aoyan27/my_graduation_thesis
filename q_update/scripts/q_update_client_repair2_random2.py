@@ -38,7 +38,7 @@ class agent:
 	init_state_joint5 = -95
 
         init_joint1 = 0
-        init_joint3 = 65
+        init_joint3 = 75
         init_joint5 = 45
 
         init_next_joint1 = init_joint1
@@ -89,15 +89,17 @@ class agent:
                 self.num_episode = 0
 
 
-                self.model = chainer.FunctionSet(
-                        l1 = F.Linear(6, 2048),
-                        l2 = F.Linear(2048, 1024),
-                        l3 = F.Linear(1024, 512),
-                        l4 = F.Linear(512, 256),
-                        l5 = F.Linear(256, 128),
-                        l6 = F.Linear(128, 64),
-                        l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
-                        )
+                #  self.model = chainer.FunctionSet(
+                        #  l1 = F.Linear(6, 2048),
+                        #  l2 = F.Linear(2048, 1024),
+                        #  l3 = F.Linear(1024, 512),
+                        #  l4 = F.Linear(512, 256),
+                        #  l5 = F.Linear(256, 128),
+                        #  l6 = F.Linear(128, 64),
+                        #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
+                        #  )
+                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test18_angeal/dqn_arm_model_50000.dat', 'rb')
+                self.model = pickle.load(fi)
                 if args.gpu >= 0:
                     self.model.to_gpu()
                 self.optimizer = optimizers.SGD()
@@ -308,9 +310,9 @@ class agent:
                     #  rand_target_vis_y += 0.01 
                 
                 if self.wait_flag:
-                    print "wait 1 seconds!!"
+                    print "wait 0.5 seconds!!"
                     count += 1
-                    if count == 100:
+                    if count == 50:
                         self.wait_flag = False
                         self.select_action_flag = False
                         self.q_update_flag = False
@@ -414,7 +416,7 @@ class agent:
                         else:
                             test_result = np.r_[test_result, temp_result]
 
-                        if episode_count%50 == 0:
+                        if episode_count%100 == 0:
                             model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
                             f = open(model_filename, 'w')
                             pickle.dump(self.model, f)
@@ -506,7 +508,7 @@ class agent:
                             else:
                                 test_result = np.r_[test_result, temp_result]
                             
-                            if episode_count%50 == 0:
+                            if episode_count%100 == 0:
                                 model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
                                 f = open(model_filename, 'w')
                                 pickle.dump(self.model, f)
@@ -573,7 +575,7 @@ class agent:
 
                     if math.fabs(episode_now - episode_past) > 1e-6:
                         if self.EPSILON > 0.1000:
-                            self.EPSILON -= 0.00003
+                            self.EPSILON -= 0.0000125
 
                     self.num_step = step_count
                     pub_7.publish(self.num_step)
@@ -581,7 +583,7 @@ class agent:
                     pub_8.publish(self.num_episode)
                     
 
-                    if episode_count > 30000:
+                    if episode_count > 80000:
                         np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
                         #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
                         #  pickle.dump(self.model, f)

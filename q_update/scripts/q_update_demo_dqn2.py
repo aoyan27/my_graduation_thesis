@@ -35,8 +35,8 @@ class agent:
 	init_state_joint3 = 40
 	init_state_joint5 = 30
 
-	init_state = 17500
-        init_next = 17500
+	init_state = 10800
+        init_next = 10800
 
 
 	num_s = 70*70*10
@@ -67,7 +67,7 @@ class agent:
 		self.state = 0
 		self.next_state = 0
                 
-                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test13_dedede/dqn_arm_model_7950.dat', 'rb')
+                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test8_dedede/dqn_arm_model_4500.dat', 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -136,6 +136,7 @@ class agent:
                 cuda.to_gpu(sum_temp)
             for i in range(len(x[0][0])):
                 sum_temp += x[0][0][i]**2
+            #  print type(sum_temp)
 
             return math.sqrt(sum_temp)
             
@@ -155,25 +156,25 @@ class agent:
             y = None
 
             h1 = F.relu(self.model.l1(x))
-            #  h1.data = h1.data / self.my_norm(h1.data)
+            h1.data = h1.data / self.my_norm(h1.data)
             #  h1.data = h1.data / xp.linalg.norm.trace(h1.data)
             #  print "h1 : ", h1.data
             h2 = F.relu(self.model.l2(h1))
-            #  h2.data = h2.data / self.my_norm(h2.data)
+            h2.data = h2.data / self.my_norm(h2.data)
             #  h2.data = h2.data / xp.linalg.norm.trace(h2.data)
             #  print "h2 : ", h2.data
             h3 = F.relu(self.model.l3(h2))
-            #  h3.data = h3.data / self.my_norm(h3.data)
+            h3.data = h3.data / self.my_norm(h3.data)
             #  h3.data = h3.data / xp.linalg.norm.trace(h3.data)
             #  print "h3 : ", h3.data
-            h4 = F.relu(self.model.l4(h3))
+            #  h4 = F.relu(self.model.l4(h3))
             #  h4.data = h4.data / self.my_norm(h4.data)
             #  h4.data = h4.data / xp.linalg.norm.trace(h4.data)
-            h5 = F.relu(self.model.l5(h4))
+            #  h5 = F.relu(self.model.l5(h4))
             #  h5.data = h5.data / self.my_norm(h5.data)
             #  h5.data = h5.data / xp.linalg.norm.trace(h5.data)
             #  h6 = F.relu(self.model.l6(h5))
-            y = self.model.l6(h5)
+            y = self.model.l4(h3)
             print "y : ", y.data
 
             return y
@@ -357,7 +358,7 @@ class agent:
 
                         
                         while 1:
-                            rand_joint1 = randint(0, 21-1)-10
+                            rand_joint1 = randint(0, 41-1)-20
                             rand_joint3 = randint(0, 31-1)+40
                             rand_joint5 = randint(0, 1-1)+30
                             init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + (rand_joint5 - self.init_state_joint5) * 1
@@ -408,7 +409,7 @@ class agent:
                             
 
                             while 1:
-                                rand_joint1 = randint(0, 21-1)-10
+                                rand_joint1 = randint(0, 41-1)-20
                                 rand_joint3 = randint(0, 31-1)+40
                                 rand_joint5 = randint(0, 1-1)+30
                                 init_next_temp = (rand_joint1 - self.init_state_joint1) * 700 + (rand_joint3 - self.init_state_joint3) * 10 + (rand_joint5 - self.init_state_joint5) * 1

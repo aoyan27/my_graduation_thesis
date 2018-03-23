@@ -100,7 +100,7 @@ class agent:
                         #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
                         #  )
                 self.model_num = 0
-                self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_%d.dat' % self.model_num
+                self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test18_angeal/dqn_arm_model_%d.dat' % self.model_num
                 f = open(self.modelname, 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
@@ -317,7 +317,7 @@ class agent:
             #  rand_target_vis_y = -0.08
             while not rospy.is_shutdown():
                 if self.model_load_flag:
-                    self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_%d.dat' % self.model_num
+                    self.modelname = '/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test18_angeal/dqn_arm_model_%d.dat' % self.model_num
                     f = open(self.modelname, 'rb')
                     self.model = pickle.load(f)
                     print "Loard model number %d!!" % self.model_num
@@ -493,7 +493,7 @@ class agent:
                                 step_count_list = []
                                 average_Q_MAX_list = []
 
-                                if self.model_num == 30000:
+                                if self.model_num == 50000:
                                     np.savetxt(filename_result, test_result, fmt="%.6f", delimiter=",")
                                     print "finish!!!"
                                     break
@@ -592,7 +592,7 @@ class agent:
                                     step_count_list = []
                                     average_Q_MAX_list = []
 
-                                    if self.model_num == 30000:
+                                    if self.model_num == 50000:
                                         np.savetxt(filename_result, test_result, fmt="%.6f", delimiter=",")
                                         print "finish!!!"
                                         break

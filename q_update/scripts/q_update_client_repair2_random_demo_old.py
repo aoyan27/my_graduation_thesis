@@ -38,8 +38,8 @@ class agent:
 	init_state_joint5 = -95
 
         init_joint1 = 0
-        init_joint3 = 40
-        init_joint5 = 40
+        init_joint3 = 65
+        init_joint5 = 45
 
         init_next_joint1 = init_joint1
         init_next_joint3 = init_joint3
@@ -84,7 +84,7 @@ class agent:
                         #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
                         #  )
 
-                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_arm_model_50.dat', 'rb')
+                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test14_angeal/dqn_arm_model_10000.dat', 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -137,9 +137,9 @@ class agent:
             return (data1 + data2) / 2.0
 
         def forward(self, joint1_data, joint3_data, joint5_data):
-            joint1_data_float = float(joint1_data -self.mean(175.0, -175.0) ) / (175.0 - (-175.0))
-            joint3_data_float = float(joint3_data - self.mean(150.0, -10.0)) / (150.0 - (-10.0))
-            joint5_data_float = float(joint5_data -self.mean(95.0, -95.0) ) / (95.0 - (-95.0))
+            joint1_data_float = float(joint1_data -self.mean(50.0, -50.0) ) / (50.0 - (-50.0))
+            joint3_data_float = float(joint3_data - self.mean(90.0, -10.0)) / (90.0 - (-10.0))
+            joint5_data_float = float(joint5_data -self.mean(90.0, -10.0) ) / (90.0 - (-10.0))
 
             target_data_x = float(self.target_point.points[0].x - self.target_init_x) / 1.0
             target_data_y = float(self.target_point.points[0].y - self.target_init_y) / (0.112 - (-0.112))

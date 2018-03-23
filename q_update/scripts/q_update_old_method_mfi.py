@@ -429,7 +429,6 @@ class agent:
                 if self.state_observation_flag and self.state_observation_flag1 and self.state_observation_flag2 and self.state_observation_flag3 and self.state_observation_flag5:
                     if self.approach_flag:
                         if i < len(self.next_arm_end_point.points):
-                            #  print len(self.next_arm_end_point.points)
                             next_arm_end_x = self.next_arm_end_point.points[i].x
                             next_arm_end_y = self.next_arm_end_point.points[i].y
                             next_arm_end_z = self.next_arm_end_point.points[i].z
@@ -597,7 +596,6 @@ class agent:
         ax.set_ylabel("y")
         ax.set_zlabel("z")
         
-        ax.set_ylim(-0.20, 0.20)
 
         ax.scatter3D(xs, ys, zs, color=(1.0 ,0.0 ,0.0))
         ax.scatter3D(optimal_path_x, optimal_path_y, optimal_path_z, color=(0.0 ,0.0 ,1.0))

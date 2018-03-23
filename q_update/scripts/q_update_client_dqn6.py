@@ -36,8 +36,8 @@ class agent:
 	init_state_joint3 = 40
 	init_state_joint5 = 30
 
-	init_state = 24709
-        init_next = 24709
+	init_state = 24609
+        init_next = 24609
 
 
 	num_s = 70*70*10
@@ -73,7 +73,7 @@ class agent:
 		self.state = 0
 		self.next_state = 0
 
-                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test21_dedede/dqn_arm_model_20000.dat', 'rb')
+                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test17_dedede/dqn_arm_model_8000.dat', 'rb')
                 self.model = pickle.load(fi)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -563,7 +563,7 @@ class agent:
 
                     if math.fabs(episode_now - episode_past) > 1e-6:
                         if self.EPSILON > 0.1000:
-                            self.EPSILON -= 0.00007
+                            self.EPSILON -= 0.0001
 
                     self.num_step = step_count
                     pub_4.publish(self.num_step)
@@ -575,7 +575,7 @@ class agent:
                         f = open(model_filename, 'w')
                         pickle.dump(self.model, f)
 
-                    if episode_count > 20000:
+                    if episode_count > 10000:
                         np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
                         #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
                         #  pickle.dump(self.model, f)

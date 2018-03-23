@@ -73,7 +73,7 @@ class agent:
 		self.state = 0
 		self.next_state = 0
 
-                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test22_dedede/dqn_arm_model_10000.dat', 'rb')
+                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test20_dedede/dqn_arm_model_9500.dat', 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
                     self.model.to_gpu()

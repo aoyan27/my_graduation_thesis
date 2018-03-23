@@ -47,8 +47,7 @@ class agent:
 	GAMMA = 0.9
         EPSILON = 1.0
 
-	#  wait_flag = False
-	wait_flag = True
+	wait_flag = False
 	select_action_flag = False
 	q_update_flag = False
 	state_observation_flag = False

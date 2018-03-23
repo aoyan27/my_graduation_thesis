@@ -33,13 +33,13 @@ xp = cuda.cupy if args.gpu >=0 else np
 class agent:
 	pi = 3.141592
 	
-        init_state_joint1 = -175
+        init_state_joint1 = -50
 	init_state_joint3 = 150
-	init_state_joint5 = -95
+	init_state_joint5 = -10
 
         init_joint1 = 0
-        init_joint3 = 65
-        init_joint5 = 45
+        init_joint3 = 50
+        init_joint5 = 30
 
         init_next_joint1 = init_joint1
         init_next_joint3 = init_joint3
@@ -59,29 +59,14 @@ class agent:
 	state_observation_flag3 = False
 	state_observation_flag5 = False
 
-        L1 = 0.064
-        L2 = 0.063
-        L3 = 0.250
-        L4 = 0.100
-        L5 = 0.100
-        L6 = 0.130
-
-
-        joint1_rad = 0.0 / 180.0 * pi
-        #  joint2_rad = -(1.515/self.pi*180.0 - 90.0) / 180.0 * self.pi
-        joint2_rad = -1 * (-1.515 + pi / 2.0)
-        joint3_rad = 55.0 / 180.0 * pi
-        joint5_rad = 45.0 / 180.0 * pi
-        L = L3 * math.cos(joint2_rad) + (L4 + L5) * math.cos(joint2_rad + joint3_rad) + L6 * math.cos(joint2_rad + joint3_rad - joint5_rad) - 0.010
-	
-        def __init__(self):
+	def __init__(self):
 		self.joint_state = np.zeros((3), dtype=np.float32)
 		#  print self.joint_state
 		self.action_num = 0
 		self.reward = 0.0
 
                 self.target_point = PointCloud()
-                self.target_init_x = self.L + 0.270
+                self.target_init_x = 0.800
                 self.target_init_y = 0.000
                 self.target_init_z = 0.960
 
@@ -89,15 +74,17 @@ class agent:
                 self.num_episode = 0
 
 
-                self.model = chainer.FunctionSet(
-                        l1 = F.Linear(6, 2048),
-                        l2 = F.Linear(2048, 1024),
-                        l3 = F.Linear(1024, 512),
-                        l4 = F.Linear(512, 256),
-                        l5 = F.Linear(256, 128),
-                        l6 = F.Linear(128, 64),
-                        l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
-                        )
+                #  self.model = chainer.FunctionSet(
+                        #  l1 = F.Linear(6, 2048),
+                        #  l2 = F.Linear(2048, 1024),
+                        #  l3 = F.Linear(1024, 512),
+                        #  l4 = F.Linear(512, 256),
+                        #  l5 = F.Linear(256, 128),
+                        #  l6 = F.Linear(128, 64),
+                        #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
+                        #  )
+                fi = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test13_angeal/dqn_arm_model_10000.dat', 'rb')
+                self.model = pickle.load(fi)
                 if args.gpu >= 0:
                     self.model.to_gpu()
                 self.optimizer = optimizers.SGD()
@@ -148,17 +135,14 @@ class agent:
         def mean(self, data1, data2):
             return (data1 + data2) / 2.0
 
-        def cal_target_x(self, y_data):
-            return math.sqrt(self.L**2 - y_data**2) + 0.270
-
         def forward(self, joint1_data, joint3_data, joint5_data):
             joint1_data_float = float(joint1_data -self.mean(50.0, -50.0) ) / (50.0 - (-50.0))
             joint3_data_float = float(joint3_data - self.mean(90.0, -10.0)) / (90.0 - (-10.0))
             joint5_data_float = float(joint5_data -self.mean(90.0, -10.0) ) / (90.0 - (-10.0))
 
-            target_data_x = float((self.target_point.points[0].x - self.mean(self.cal_target_x(0.000), self.cal_target_x(0.160))) / (self.cal_target_x(0.000) - self.cal_target_x(0.160)))
-            target_data_y = float((self.target_point.points[0].y - self.mean(0.160, -0.160)) / (0.160 - (-0.160)))
-            target_data_z = float((self.target_point.points[0].z - self.mean(1.000, 0.900)) / (1.000 - 0.900))
+            target_data_x = float(self.target_point.points[0].x - self.target_init_x) / 1.0
+            target_data_y = float(self.target_point.points[0].y - self.target_init_y) / (0.112 - (-0.112))
+            target_data_z = float(self.target_point.points[0].z - (0.980 + 0.960)/2) / (0.980 - 0.960) 
 
             x = chainer.Variable(xp.array([[joint1_data_float, joint3_data_float, joint5_data_float, target_data_x, target_data_y, target_data_z]], dtype=xp.float32))
             print "x :  ", x.data
@@ -292,20 +276,22 @@ class agent:
 
             print "Q Learning Start!!"
 
-            #  print "L : ", self.L
-            #  print "x : ", self.L * math.cos(0.0)+0.270
-            #  rand_target_vis_y = -0.08
+            #  rand_target_vis_y = -0.112
             while not rospy.is_shutdown():
                 if episode_count == 0:
                     if step_count == 0:    
                         pub_9.publish(self.target_point)
-                #  rand_target_vis_x = math.sqrt(self.L**2 - rand_target_vis_y**2) + 0.270
-                #  rand_target_vis_z = self.target_init_z
-                
-                #  if rand_target_vis_y <=0.08:    
-                    #  target_vis.points.append(Point32(rand_target_vis_x, rand_target_vis_y, rand_target_vis_z))
-                    #  pub_10.publish(target_vis)
-                    #  rand_target_vis_y += 0.01 
+#                rand_target_vis_x = self.target_init_x
+#                dz = (0.960 - 0.980)/(0.112 - 0.000)
+#                if rand_target_vis_y <= 0:
+#                    rand_target_vis_z = -1 * dz * rand_target_vis_y + 0.98
+#                else:
+#                    rand_target_vis_z = dz * rand_target_vis_y + 0.98
+#
+#                if rand_target_vis_y <=0.112:    
+#                    target_vis.points.append(Point32(rand_target_vis_x, rand_target_vis_y, rand_target_vis_z))
+#                    pub_10.publish(target_vis)
+#                    rand_target_vis_y += 0.001 
                 
                 if self.wait_flag:
                     print "wait 1 seconds!!"
@@ -414,10 +400,6 @@ class agent:
                         else:
                             test_result = np.r_[test_result, temp_result]
 
-                        if episode_count%50 == 0:
-                            model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
-                            f = open(model_filename, 'w')
-                            pickle.dump(self.model, f)
                         
                         #  while 1:
                             #  rand_joint1 = randint(0, 1-1)+self.init_joint1
@@ -432,35 +414,25 @@ class agent:
                                 #  self.init_next_joint5 = rand_joint5
                                 #  break
 
-                        #  while 1:
-                            #  rand_target_x = self.target_init_x
-                            #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
-                            #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
-                            #  dz = (0.980 - 0.960)/(0.00 - 0.112)
-                            #  if rand_target_y <= 0.0:
-                                #  temp_z =-1 *  dz * rand_target_y + 0.980
-                            #  else:
-                                #  temp_z = dz * rand_target_y + 0.980
+                        while 1:
+                            rand_target_x = self.target_init_x
+                            rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
+                            rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
+                            dz = (0.980 - 0.960)/(0.00 - 0.112)
+                            if rand_target_y <= 0.0:
+                                temp_z =-1 *  dz * rand_target_y + 0.980
+                            else:
+                                temp_z = dz * rand_target_y + 0.980
 
-                            #  if rand_target_z <= temp_z:
-                                #  self.target_point.header.stamp = rospy.Time.now()
-                                #  self.target_point.points[0].x = rand_target_x
-                                #  self.target_point.points[0].y = rand_target_y
-                                #  self.target_point.points[0].z = rand_target_z
+                            if rand_target_z <= temp_z:
+                                self.target_point.header.stamp = rospy.Time.now()
+                                self.target_point.points[0].x = rand_target_x
+                                self.target_point.points[0].y = rand_target_y
+                                self.target_point.points[0].z = rand_target_z
                                 #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
-                                #  break
-                            #  else:
-                                #  print "one more!!!" 
-                            
-                        
-                        rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
-                        #  rand_target_x = self.target_init_x
-                        rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
-                        rand_target_z = self.target_init_z
-                        self.target_point.header.stamp = rospy.Time.now()
-                        self.target_point.points[0].x = rand_target_x
-                        self.target_point.points[0].y = rand_target_y
-                        self.target_point.points[0].z = rand_target_z
+                                break
+                            else:
+                                print "one more!!!" 
                         
                         step_count = 0
                         episode_count += 1
@@ -506,11 +478,6 @@ class agent:
                             else:
                                 test_result = np.r_[test_result, temp_result]
                             
-                            if episode_count%50 == 0:
-                                model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
-                                f = open(model_filename, 'w')
-                                pickle.dump(self.model, f)
-                    
                             #  while 1:
                                 #  rand_joint1 = randint(0, 1-1)+self.init_joint1
                                 #  rand_joint3 = randint(-10, 1)+self.init_joint3
@@ -524,34 +491,25 @@ class agent:
                                     #  self.init_next_joint5 = rand_joint5
                                     #  break
                             
-                            #  while 1:
-                                #  rand_target_x = self.target_init_x
-                                #  rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
-                                #  rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
-                                #  dz = (0.980 - 0.960)/(0.00 - 0.112)
-                                #  if rand_target_y <= 0.0:
-                                    #  temp_z = -1 * dz * rand_target_y + 0.980
-                                #  else:
-                                    #  temp_z = dz * rand_target_y + 0.980
+                            while 1:
+                                rand_target_x = self.target_init_x
+                                rand_target_y = uniform(self.target_init_y-0.112, self.target_init_y+0.112)
+                                rand_target_z = uniform(self.target_init_z, self.target_init_z+0.020)
+                                dz = (0.980 - 0.960)/(0.00 - 0.112)
+                                if rand_target_y <= 0.0:
+                                    temp_z = -1 * dz * rand_target_y + 0.980
+                                else:
+                                    temp_z = dz * rand_target_y + 0.980
 
-                                #  if rand_target_z <= temp_z:
-                                    #  self.target_point.header.stamp = rospy.Time.now()
-                                    #  self.target_point.points[0].x = rand_target_x
-                                    #  self.target_point.points[0].y = rand_target_y
-                                    #  self.target_point.points[0].z = rand_target_z
+                                if rand_target_z <= temp_z:
+                                    self.target_point.header.stamp = rospy.Time.now()
+                                    self.target_point.points[0].x = rand_target_x
+                                    self.target_point.points[0].y = rand_target_y
+                                    self.target_point.points[0].z = rand_target_z
                                     #  self.target_point.points.append(Point32(rand_target_x, rand_target_y, rand_target_z))
-                                    #  break
-                                #  else:
-                                    #  print "one more!!!" 
-                                
-                            rand_target_y = uniform(self.target_init_y-0.08, self.target_init_y+0.08)
-                            #  rand_target_x = self.target_init_x
-                            rand_target_x = math.sqrt(self.L**2 - rand_target_y**2) + 0.270 
-                            rand_target_z = self.target_init_z
-                            self.target_point.header.stamp = rospy.Time.now()
-                            self.target_point.points[0].x = rand_target_x
-                            self.target_point.points[0].y = rand_target_y
-                            self.target_point.points[0].z = rand_target_z
+                                    break
+                                else:
+                                    print "one more!!!" 
                             
                             step_count = 0
                             episode_count += 1
@@ -573,20 +531,25 @@ class agent:
 
                     if math.fabs(episode_now - episode_past) > 1e-6:
                         if self.EPSILON > 0.1000:
-                            self.EPSILON -= 0.00003
+                            self.EPSILON -= 0.0001
 
                     self.num_step = step_count
                     pub_7.publish(self.num_step)
                     self.num_episode = episode_count
                     pub_8.publish(self.num_episode)
                     
+                    if episode_count%50 == 0:
+                        model_filename = "/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model_%d.dat" % episode_count
+                        f = open(model_filename, 'w')
+                        pickle.dump(self.model, f)
 
-                    if episode_count > 30000:
+                    if episode_count > 10000:
                         np.savetxt(filename_result, test_result, fmt="%d", delimiter=",")
                         #  f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_arm_model.dat', 'w')
                         #  pickle.dump(self.model, f)
                         print "Finish!!!"
                         break
+
 
                 loop_rate.sleep()
     

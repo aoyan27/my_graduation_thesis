@@ -38,7 +38,7 @@ class agent:
 	init_state_joint5 = -95
 
         init_joint1 = 0
-        init_joint3 = 65
+        init_joint3 = 95
         init_joint5 = 45
 
         init_next_joint1 = init_joint1
@@ -84,7 +84,7 @@ class agent:
 
                 self.target_point = PointCloud()
                 self.target_init_x = self.L + 0.270
-                self.target_init_y = 0.000
+                self.target_init_y = 0.070
                 self.target_init_z = 0.960
                 
                 self.arm_end = np.zeros((3), dtype=np.float32)
@@ -104,7 +104,7 @@ class agent:
                         #  l7 = F.Linear(64, 27, initialW=np.zeros((27, 64), dtype=np.float32)),
                         #  )
 
-                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test15_angeal/dqn_arm_model_20000.dat', 'rb')
+                f = open('/home/amsl/ros_catkin_ws/src/arm_q_learning/dqn_model/dqn_test16_angeal/dqn_arm_model_30000.dat', 'rb')
                 self.model = pickle.load(f)
                 if args.gpu >= 0:
                     self.model.to_gpu()
@@ -281,6 +281,9 @@ class agent:
             self.next_joint1 = self.init_joint1
             self.next_joint3 = self.init_joint3
             self.next_joint5 = self.init_joint5
+            self.joint_state[0] = self.init_joint1
+            self.joint_state[1] = self.init_joint3
+            self.joint_state[2] = self.init_joint5
             print "next joint1 : ", self.next_joint1
             print "next joint3 : ", self.next_joint3
             print "next joint5 : ", self.next_joint5
@@ -329,17 +332,18 @@ class agent:
                     #  rand_target_vis_y += 0.01 
                 
                 if self.wait_flag:
-                    print "wait 10 seconds!!"
+                    #  print "wait 10 seconds!!"
                     count += 1
                     if count == 1000:
                         self.wait_flag = False
                         self.select_action_flag = False
                         self.q_update_flag = False
                         self.mode_dqn_flag = True
-                        self.state_observation_flag = True
-                        self.state_observation_flag1 = True
-                        self.state_observation_flag3 = True
-                        self.state_observation_flag5 = True
+                        if episode_count == 0:
+                            self.state_observation_flag = True
+                            self.state_observation_flag1 = True
+                            self.state_observation_flag3 = True
+                            self.state_observation_flag5 = True
                         
                         pub_11_flag = False
                         pub_13_flag = False
@@ -347,14 +351,33 @@ class agent:
                         count = 0
                     if count == 10:
                         self.action_num = 0
-                        self.joint1 = self.init_next_joint1
-                        self.joint3 = self.init_next_joint3
                         self.joint5 = self.init_next_joint5
+                        self.next_joint5 = self.init_next_joint5
                         self.reward = 0.0
                         pub_1.publish(self.joint1)
                         pub_3.publish(self.joint3)
                         pub_5.publish(self.joint5)
                         pub_6.publish(self.action_num)
+                        print "publish joint5 : ", self.joint5
+                    if count == 100:
+                        self.joint3 = self.init_next_joint3
+                        self.next_joint3 = self.init_next_joint3
+                        pub_1.publish(self.joint1)
+                        pub_3.publish(self.joint3)
+                        pub_5.publish(self.joint5)
+                        pub_6.publish(self.action_num)
+                        print "publish joint3 : ", self.joint3
+                    if count == 300:
+                        self.joint1 = self.init_next_joint1
+                        self.next_joint1 = self.init_next_joint1
+                        pub_1.publish(self.joint1)
+                        pub_3.publish(self.joint3)
+                        pub_5.publish(self.joint5)
+                        pub_6.publish(self.action_num)
+                        print "publish joint1 : ", self.joint1
+                    pub_1.publish(self.joint1)
+                    pub_3.publish(self.joint3)
+                    pub_5.publish(self.joint5)
                 else:
                     if self.mode_dqn_flag:
                         if self.select_action_flag:
@@ -710,9 +733,9 @@ class agent:
                                 print "can not reach next end position!!!!"
                                 print "this episode finish!!!!!!!!!!!!!!"
                                 self.action_num = 0
-                                self.joint1 = self.init_next_joint1
-                                self.joint3 = self.init_next_joint3
-                                self.joint5 = self.init_next_joint5
+                                #  self.joint1 = self.init_next_joint1
+                                #  self.joint3 = self.init_next_joint3
+                                #  self.joint5 = self.init_next_joint5
                                 pub_1.publish(self.joint1)
                                 pub_3.publish(self.joint3)
                                 pub_5.publish(self.joint5)
